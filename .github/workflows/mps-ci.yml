@@ -31,7 +31,7 @@ jobs:
       github.event.client_payload.payload.ref == 'refs/heads/main' &&
       github.event.client_payload.payload.deleted != true }}
     runs-on: [self-hosted, mps]
-    timeout-minutes: 180
+    timeout-minutes: 360
     env:
       CMAKE_C_COMPILER_LAUNCHER: ccache
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
@@ -63,7 +63,7 @@ jobs:
       - name: Build PyTorch
         working-directory: pytorch
         run: |
-          pip install -r requirements.txt expecttest hypothesis pytest unittest-xml-reporting
+          pip install -r requirements.txt -r .ci/docker/requirements-ci.txt
           pip install -e . -v --no-build-isolation 2>&1 | tail -20
           ccache -s
 
@@ -79,7 +79,15 @@ jobs:
 
       - name: Run MPS tests
         working-directory: pytorch
-        run: python test/test_mps.py
+        env:
+          GLOO_SOCKET_IFNAME: lo0
+        run: |
+          ulimit -n 16384
+          time PYTORCH_TEST_WITH_SLOW=1 python test/run_test.py --verbose --mps
+          MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 python test/test_mps.py --verbose -k test_add_sub
+          for _ in 1 2 3; do
+            MTL_CAPTURE_ENABLED=1 python test/test_mps.py --verbose -k test_metal_capture && break
+          done
 
       - name: Report result
         if: always()
