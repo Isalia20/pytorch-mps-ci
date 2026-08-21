@@ -18,7 +18,7 @@ concurrency:
     mps-ci-${{ github.event.client_payload.payload.repository.full_name }}-${{
     github.event.client_payload.payload.pull_request.number ||
     github.event.client_payload.payload.ref || github.run_id }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -31,6 +31,10 @@ jobs:
       github.event.client_payload.payload.ref == 'refs/heads/main' &&
       github.event.client_payload.payload.deleted != true }}
     runs-on: [self-hosted, mps]
+    timeout-minutes: 180
+    env:
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
     steps:
       - uses: actions/checkout@v4
 
@@ -44,16 +48,36 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: pytorch/pytorch
-          ref: >-
-            ${{ github.event.client_payload.event_type == 'pull_request' &&
-            github.event.client_payload.payload.pull_request.head.sha ||
-            github.event.client_payload.payload.after }}
+          ref: ${{ github.event.client_payload.payload.after }}
           path: pytorch
+          submodules: recursive
+
+      - name: Set up Python environment
+        run: |
+          VENV="$HOME/.mps-ci/venv"
+          [ -d "$VENV" ] || python3.13 -m venv "$VENV"
+          echo "$VENV/bin" >> "$GITHUB_PATH"
+
+      - name: Build PyTorch
+        working-directory: pytorch
+        run: |
+          pip install -r requirements.txt expecttest hypothesis pytest
+          pip install -e . -v --no-build-isolation 2>&1 | tail -20
+          ccache -s
+
+      - name: MPS smoke test
+        run: |
+          python -c "
+          import torch
+          assert torch.backends.mps.is_available()
+          x = torch.ones(128, 128, device='mps')
+          assert (x @ x).sum().item() == 128 * 128 * 128
+          print(torch.__version__, torch.version.git_version)
+          "
 
       - name: Run MPS tests
-        run: |
-          echo "PyTorch SHA: $(git -C pytorch rev-parse HEAD)"
-          sysctl -n machdep.cpu.brand_string
+        working-directory: pytorch
+        run: python test/test_mps.py
 
       - name: Report result
         if: always()
