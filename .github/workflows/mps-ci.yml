@@ -90,6 +90,14 @@ jobs:
             MTL_CAPTURE_ENABLED=1 python test/test_mps.py --verbose -k test_metal_capture && break
           done
 
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.run_id }}
+          path: pytorch/test/test-reports
+          if-no-files-found: ignore
+
       - name: Report result
         if: always()
         continue-on-error: true
