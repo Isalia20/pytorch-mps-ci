@@ -54,6 +54,8 @@ jobs:
 
       - name: Set up Python environment
         run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
           VENV="$HOME/.mps-ci/venv"
           [ -d "$VENV" ] || python3.13 -m venv "$VENV"
           echo "$VENV/bin" >> "$GITHUB_PATH"
