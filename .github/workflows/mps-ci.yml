@@ -82,6 +82,7 @@ jobs:
         working-directory: pytorch
         env:
           GLOO_SOCKET_IFNAME: lo0
+          CONTINUE_THROUGH_ERROR: "1"
         run: |
           ulimit -n 16384
           time PYTORCH_TEST_WITH_SLOW=1 python test/run_test.py --verbose --mps
