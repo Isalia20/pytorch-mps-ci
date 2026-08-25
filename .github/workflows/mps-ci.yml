@@ -67,9 +67,13 @@ jobs:
           pip install -r requirements.txt
           pip install -e . -v --no-build-isolation 2>&1 | tail -20
           ccache -s
-          mkdir -p torch/include/c10/metal
-          cp c10/metal/*.h torch/include/c10/metal/
-          cp /Users/Shared/mps-ci/lib/libomp.dylib torch/lib/
+          TORCH_DIR=$(python -c "import sysconfig, os; print(os.path.join(sysconfig.get_paths()['purelib'], 'torch'))")
+          for D in torch "$TORCH_DIR"; do
+            mkdir -p "$D/include/c10/metal"
+            cp c10/metal/*.h "$D/include/c10/metal/"
+            cp /Users/Shared/mps-ci/include/omp.h "$D/include/"
+            cp /Users/Shared/mps-ci/lib/libomp.dylib "$D/lib/"
+          done
 
       - name: MPS smoke test
         run: |
@@ -86,6 +90,7 @@ jobs:
         env:
           GLOO_SOCKET_IFNAME: lo0
           CONTINUE_THROUGH_ERROR: "1"
+          TORCHINDUCTOR_CACHE_DIR: ${{ runner.temp }}/inductor-cache
         run: |
           ulimit -n 16384
           time PYTORCH_TEST_WITH_SLOW=1 python test/run_test.py --verbose --mps
