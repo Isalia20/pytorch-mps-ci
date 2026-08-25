@@ -67,6 +67,9 @@ jobs:
           pip install -r requirements.txt
           pip install -e . -v --no-build-isolation 2>&1 | tail -20
           ccache -s
+          mkdir -p torch/include/c10/metal
+          cp c10/metal/*.h torch/include/c10/metal/
+          cp /Users/Shared/mps-ci/lib/libomp.dylib torch/lib/
 
       - name: MPS smoke test
         run: |
