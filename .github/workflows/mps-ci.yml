@@ -73,6 +73,8 @@ jobs:
             cp c10/metal/*.h "$D/include/c10/metal/"
             cp /Users/Shared/mps-ci/include/omp.h "$D/include/"
             cp /Users/Shared/mps-ci/lib/libomp.dylib "$D/lib/"
+            install_name_tool -id /Users/Shared/mps-ci/lib/libomp.dylib "$D/lib/libomp.dylib"
+            codesign -f -s - "$D/lib/libomp.dylib"
           done
 
       - name: MPS smoke test
@@ -93,6 +95,7 @@ jobs:
           TORCHINDUCTOR_CACHE_DIR: ${{ runner.temp }}/inductor-cache
         run: |
           ulimit -n 16384
+          python -c "from torch._inductor.runtime.cache_dir_utils import default_cache_dir; import shutil; shutil.rmtree(default_cache_dir(), ignore_errors=True)"
           time PYTORCH_TEST_WITH_SLOW=1 python test/run_test.py --verbose --mps
           MTL_DEBUG_LAYER=1 MTL_SHADER_VALIDATION=1 python test/test_mps.py --verbose -k test_add_sub
           for _ in 1 2 3; do
