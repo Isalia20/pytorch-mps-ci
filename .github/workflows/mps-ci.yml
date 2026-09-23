@@ -28,7 +28,7 @@ jobs:
   mps-test:
     if: >-
       ${{ github.event.client_payload.event_type == 'push' &&
-      github.event.client_payload.payload.ref == 'refs/heads/main' &&
+      github.event.client_payload.payload.ref == 'refs/heads/nightly' &&
       github.event.client_payload.payload.deleted != true }}
     runs-on: [self-hosted, mps]
     timeout-minutes: 360
@@ -37,12 +37,6 @@ jobs:
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
     steps:
       - uses: actions/checkout@v4
-
-      - name: Report in progress
-        continue-on-error: true
-        uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
-        with:
-          status: in_progress
 
       - name: Checkout PyTorch at dispatched commit
         uses: actions/checkout@v4
@@ -117,6 +111,8 @@ jobs:
         with:
           status: completed
           conclusion: ${{ job.status }}
+          event-type: nightly
+          delivery-id: ${{ github.event.client_payload.payload.after }}
           artifact-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Log dispatch payload
