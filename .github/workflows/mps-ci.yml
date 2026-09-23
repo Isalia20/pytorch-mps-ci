@@ -92,6 +92,7 @@ jobs:
         env:
           GLOO_SOCKET_IFNAME: lo0
           TORCHINDUCTOR_CACHE_DIR: ${{ runner.temp }}/inductor-cache
+          LIBRARY_PATH: /Users/Shared/mps-ci/lib
         run: |
           ulimit -n 16384
           python -c "from torch._inductor.runtime.cache_dir_utils import default_cache_dir; import shutil; shutil.rmtree(default_cache_dir(), ignore_errors=True)"
