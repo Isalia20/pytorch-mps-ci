@@ -62,14 +62,12 @@ jobs:
           pip install -e . -v --no-build-isolation 2>&1 | tail -20
           ccache -s
           TORCH_DIR=$(python -c "import sysconfig, os; print(os.path.join(sysconfig.get_paths()['purelib'], 'torch'))")
-          for D in torch "$TORCH_DIR"; do
-            mkdir -p "$D/include/c10/metal"
-            cp c10/metal/*.h "$D/include/c10/metal/"
-            cp /Users/Shared/mps-ci/include/omp.h "$D/include/"
-            cp /Users/Shared/mps-ci/lib/libomp.dylib "$D/lib/"
-            install_name_tool -id /Users/Shared/mps-ci/lib/libomp.dylib "$D/lib/libomp.dylib"
-            codesign -f -s - "$D/lib/libomp.dylib"
-          done
+          mkdir -p "$TORCH_DIR/include/c10/metal"
+          cp c10/metal/*.h "$TORCH_DIR/include/c10/metal/"
+          cp /Users/Shared/mps-ci/include/omp.h "$TORCH_DIR/include/"
+          cp /Users/Shared/mps-ci/lib/libomp.dylib "$TORCH_DIR/lib/"
+          install_name_tool -id /Users/Shared/mps-ci/lib/libomp.dylib "$TORCH_DIR/lib/libomp.dylib"
+          codesign -f -s - "$TORCH_DIR/lib/libomp.dylib"
 
       - name: MPS smoke test
         run: |
