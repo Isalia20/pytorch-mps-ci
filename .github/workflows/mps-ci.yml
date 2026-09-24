@@ -18,7 +18,9 @@ concurrency:
     mps-ci-${{ github.event.client_payload.payload.repository.full_name }}-${{
     github.event.client_payload.payload.pull_request.number ||
     github.event.client_payload.payload.ref || github.run_id }}
-  cancel-in-progress: false
+  # A new commit on a ciflow/mps PR (or a duplicate dispatch) supersedes the
+  # run in flight; main and nightly runs are never cancelled.
+  cancel-in-progress: ${{ startsWith(github.event.client_payload.payload.ref, 'refs/tags/ciflow/mps/') }}
 
 permissions:
   contents: read
@@ -29,7 +31,8 @@ jobs:
     if: >-
       ${{ github.event.client_payload.event_type == 'push' &&
       (github.event.client_payload.payload.ref == 'refs/heads/main' ||
-      github.event.client_payload.payload.ref == 'refs/heads/nightly') &&
+      github.event.client_payload.payload.ref == 'refs/heads/nightly' ||
+      startsWith(github.event.client_payload.payload.ref, 'refs/tags/ciflow/mps/')) &&
       github.event.client_payload.payload.deleted != true }}
     runs-on: [self-hosted, mps]
     timeout-minutes: 360
@@ -39,10 +42,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Nightly runs self-report a single completed callback; main pushes use
-      # the regular dispatched flow, which needs in_progress first.
+      # Nightly runs self-report a single completed callback; main and
+      # ciflow/mps pushes use the regular dispatched flow, which needs
+      # in_progress first.
       - name: Report in progress
-        if: github.event.client_payload.payload.ref == 'refs/heads/main'
+        if: github.event.client_payload.payload.ref != 'refs/heads/nightly'
         continue-on-error: true
         uses: pytorch/test-infra/.github/actions/cross-repo-ci-relay-callback@main
         with:
