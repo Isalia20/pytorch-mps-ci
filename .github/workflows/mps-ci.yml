@@ -44,7 +44,21 @@ jobs:
           repository: pytorch/pytorch
           ref: ${{ github.event.client_payload.payload.after }}
           path: pytorch
-          submodules: recursive
+
+      # The runner's network drops some connections when many open at once,
+      # so fetch submodules with limited parallelism and retry on failure.
+      - name: Fetch PyTorch submodules
+        working-directory: pytorch
+        run: |
+          for attempt in 1 2 3; do
+            git submodule sync --recursive
+            if git submodule update --init --recursive --jobs 4; then
+              exit 0
+            fi
+            echo "Submodule fetch attempt $attempt failed"
+            [ "$attempt" -lt 3 ] && sleep $((attempt * 30))
+          done
+          exit 1
 
       - name: Set up Python environment
         run: |
