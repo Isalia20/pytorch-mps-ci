@@ -53,6 +53,9 @@ jobs:
           for attempt in 1 2 3; do
             git submodule sync --recursive
             if git submodule update --init --recursive --jobs 4; then
+              # An interrupted clone can leave a submodule at the right commit
+              # with no files, which update then skips; restore any such tree.
+              git submodule foreach --recursive --quiet 'git reset --hard -q'
               exit 0
             fi
             echo "Submodule fetch attempt $attempt failed"
@@ -73,7 +76,9 @@ jobs:
         run: |
           pip install -r .ci/docker/requirements-ci.txt
           pip install -r requirements.txt
-          pip install -e . -v --no-build-isolation 2>&1 | tail -20
+          set -o pipefail
+          mkdir -p test/test-reports
+          pip install -e . -v --no-build-isolation 2>&1 | tee test/test-reports/build.log | tail -20
           ccache -s
           TORCH_DIR=$(python -c "import sysconfig, os; print(os.path.join(sysconfig.get_paths()['purelib'], 'torch'))")
           mkdir -p "$TORCH_DIR/include/c10/metal"
