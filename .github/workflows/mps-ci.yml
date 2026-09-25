@@ -35,7 +35,7 @@ jobs:
       startsWith(github.event.client_payload.payload.ref, 'refs/tags/ciflow/mps/')) &&
       github.event.client_payload.payload.deleted != true }}
     runs-on: [self-hosted, mps]
-    timeout-minutes: 360
+    timeout-minutes: 150
     env:
       CMAKE_C_COMPILER_LAUNCHER: ccache
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
