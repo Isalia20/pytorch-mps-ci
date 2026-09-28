@@ -95,11 +95,15 @@ jobs:
           pip install -e . -v --no-build-isolation 2>&1 | tee test/test-reports/build.log | tail -20
           ccache -s
           TORCH_DIR=$(python -c "import sysconfig, os; print(os.path.join(sysconfig.get_paths()['purelib'], 'torch'))")
-          # torch reads headers and libs from get_file_path("torch"): the source
-          # checkout, or site-packages/torch while pytorch/pytorch#195587 is in.
-          # -P keeps the checkout in cwd from shadowing the editable install.
-          TORCH_FILE_DIR=$(python -P -c "from torch._utils_internal import get_file_path; print(get_file_path('torch'))")
-          for D in "$TORCH_DIR" "$TORCH_FILE_DIR"; do
+          DIRS=("$TORCH_DIR")
+          # Inductor's MPS codegen embeds c10/metal headers from the torch/include
+          # beside its own source, i.e. the checkout, unless pytorch/pytorch#195587
+          # is in; then it uses get_file_path("torch") (site-packages/torch), and
+          # copies in the checkout would trip the stale-artifacts import warning.
+          if ! grep -q 'get_file_path("torch")' torch/_inductor/codegen/mps.py; then
+            DIRS+=(torch)
+          fi
+          for D in "${DIRS[@]}"; do
             mkdir -p "$D/include/c10/metal"
             cp c10/metal/*.h "$D/include/c10/metal/"
             cp /Users/Shared/mps-ci/include/omp.h "$D/include/"
