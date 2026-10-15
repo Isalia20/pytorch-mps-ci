@@ -5,7 +5,7 @@ name: MPS CI
 # on a schedule and self-report the result. The branch moves around 07:45-08:10 UTC.
 on:
   schedule:
-    - cron: '0 9 * * *'
+    - cron: '30 8 * * *'
   workflow_dispatch:
 
 concurrency:
