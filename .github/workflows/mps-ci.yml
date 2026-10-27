@@ -5,7 +5,9 @@ name: MPS CI
 # on a schedule and self-report the result. The branch moves around 07:45-08:10 UTC.
 on:
   schedule:
-    - cron: '30 8 * * *'
+    # Not 08:30: GitHub has created runs for that slot 3.5-9.5 hours late since
+    # late August, here and in other CRCR repos, while 09:20 runs within minutes.
+    - cron: '20 9 * * *'
   workflow_dispatch:
 
 concurrency:
